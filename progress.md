@@ -25,10 +25,11 @@ Last updated: 2026-10-25
 - [x] Passed backend, frontend, architecture, contract, and concurrency checks.
 - [x] Passed the complete Docker Compose and Chrome browser journey.
 - [x] Completed the Evidence Bundle with inspected happy-path and conflict screenshots.
+- [x] Published the backend and frontend as separate public GitHub repositories linked to the BookFlow GitHub Project.
 
 ## Current checkpoint
 
-The backend now follows the approved classic layered structure with explicit service contracts and generated MapStruct adapters. Backend, frontend, PostgreSQL concurrency, Compose, architecture, and browser checks have been renewed successfully. The implementation is ready for project-owner code review.
+The backend now follows the approved classic layered structure with explicit service contracts and generated MapStruct adapters. Backend, frontend, PostgreSQL concurrency, Compose, architecture, and browser checks have been renewed successfully. Independent public backend and frontend repositories are available on GitHub and linked through the BookFlow project. The implementation is ready for project-owner code review.
 
 ## Next actions
 
