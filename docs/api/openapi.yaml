@@ -1,0 +1,227 @@
+openapi: 3.1.0
+info:
+  title: BookFlow API
+  version: v1
+  description: Conflict-safe meeting-room booking API.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/rooms/availability:
+    get:
+      operationId: findAvailableRooms
+      summary: Find active rooms available for an interval and participant count.
+      parameters:
+        - $ref: '#/components/parameters/Start'
+        - $ref: '#/components/parameters/End'
+        - name: participants
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Matching rooms ordered by capacity and name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvailabilityResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/v1/bookings:
+    post:
+      operationId: createBooking
+      summary: Create an immediately confirmed booking.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created.
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The room is no longer available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemResponse'
+  /api/v1/employees/{employeeId}/bookings:
+    get:
+      operationId: listEmployeeBookings
+      summary: List upcoming confirmed bookings for an employee.
+      parameters:
+        - name: employeeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Upcoming bookings ordered by start time.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingListResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    Start:
+      name: start
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date-time
+    End:
+      name: end
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date-time
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemResponse'
+    NotFound:
+      description: Referenced resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemResponse'
+  schemas:
+    RoomResponse:
+      type: object
+      required: [id, name, location, capacity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        location:
+          type: string
+        capacity:
+          type: integer
+          minimum: 1
+    AvailabilityResponse:
+      type: object
+      required: [rooms]
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomResponse'
+    CreateBookingRequest:
+      type: object
+      required: [roomId, employeeId, start, end, participantCount]
+      properties:
+        roomId:
+          type: string
+          format: uuid
+        employeeId:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        participantCount:
+          type: integer
+          minimum: 1
+    BookingStatus:
+      type: string
+      enum: [CONFIRMED]
+    BookingResponse:
+      type: object
+      required:
+        - id
+        - room
+        - employeeId
+        - start
+        - end
+        - participantCount
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        room:
+          $ref: '#/components/schemas/RoomResponse'
+        employeeId:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        participantCount:
+          type: integer
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        createdAt:
+          type: string
+          format: date-time
+    BookingListResponse:
+      type: object
+      required: [bookings]
+      properties:
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingResponse'
+    ViolationResponse:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+    ProblemResponse:
+      type: object
+      required: [type, title, status, detail, instance, code, correlationId, violations]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          type: string
+        correlationId:
+          type: string
+        violations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ViolationResponse'

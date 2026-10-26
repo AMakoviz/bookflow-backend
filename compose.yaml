@@ -1,0 +1,53 @@
+name: bookflow
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${BOOKFLOW_DB_NAME:?Copy .env.example to .env}
+      POSTGRES_USER: ${BOOKFLOW_DB_USER:?Copy .env.example to .env}
+      POSTGRES_PASSWORD: ${BOOKFLOW_DB_PASSWORD:?Copy .env.example to .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - bookflow-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  backend:
+    build:
+      context: .
+    environment:
+      BOOKFLOW_DB_URL: jdbc:postgresql://postgres:5432/${BOOKFLOW_DB_NAME}
+      BOOKFLOW_DB_USER: ${BOOKFLOW_DB_USER}
+      BOOKFLOW_DB_PASSWORD: ${BOOKFLOW_DB_PASSWORD}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health/readiness"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  frontend:
+    build:
+      context: https://github.com/AMakoviz/bookflow-frontend.git#main
+    ports:
+      - "3000:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:8080/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  bookflow-postgres:
